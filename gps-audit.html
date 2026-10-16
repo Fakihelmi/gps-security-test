@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>GPS Permission Security Test</title>
+</head>
+<body>
+  <h2>GPS Security Test</h2>
+  <p id="status">Memeriksa keamanan lokasi...</p>
+  <button id="test">Uji Akses GPS</button>
+  <pre id="hasil"></pre>
+
+  <script>
+    const status = document.getElementById("status");
+    const hasil = document.getElementById("hasil");
+
+    async function checkPermission() {
+      if (!navigator.geolocation) {
+        status.textContent =
+          "Geolocation API tidak tersedia.";
+        return;
+      }
+
+      if (!navigator.permissions) {
+        status.textContent =
+          "Browser tidak mendukung pemeriksaan izin.";
+        return;
+      }
+
+      try {
+        const permission =
+          await navigator.permissions.query({
+            name: "geolocation"
+          });
+
+        status.textContent =
+          "Status izin GPS: " + permission.state;
+      } catch (err) {
+        status.textContent =
+          "Status izin tidak tersedia di browser ini.";
+      }
+    }
+
+    document.getElementById("test")
+      .addEventListener("click", () => {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            hasil.textContent =
+              "Latitude: " +
+              position.coords.latitude +
+              "\nLongitude: " +
+              position.coords.longitude +
+              "\nAkurasi: " +
+              position.coords.accuracy + " meter";
+          },
+          error => {
+            hasil.textContent =
+              "Akses lokasi gagal: " + error.message;
+          },
+          { enableHighAccuracy: true }
+        );
+      });
+
+    checkPermission();
+  </script>
+</body>
+</html>
