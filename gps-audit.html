@@ -2,69 +2,158 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>GPS Permission Security Test</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPS Security Test</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #101827;
+  color: white;
+  padding: 24px;
+}
+main {
+  max-width: 480px;
+  margin: 30px auto;
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 25px;
+}
+button {
+  padding: 13px;
+  margin: 6px 0;
+  border: 0;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 16px;
+}
+.start { background: #22c55e; }
+.stop { background: #f87171; }
+input {
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+</style>
 </head>
 <body>
-  <h2>GPS Security Test</h2>
-  <p id="status">Memeriksa keamanan lokasi...</p>
-  <button id="test">Uji Akses GPS</button>
-  <pre id="hasil"></pre>
+<main>
+<h2>GPS Security Test</h2>
+<p>Uji lokasi perangkat secara real-time.</p>
+<p>Lokasi hanya dibaca selama sesi berbagi aktif.</p>
 
-  <script>
-    const status = document.getElementById("status");
-    const hasil = document.getElementById("hasil");
+<input id="endpoint"
+ placeholder="URL HTTPS server Kali Linux">
+<input id="token" type="password"
+ placeholder="Kode sesi pribadi">
 
-    async function checkPermission() {
-      if (!navigator.geolocation) {
-        status.textContent =
-          "Geolocation API tidak tersedia.";
-        return;
-      }
+<button class="start" onclick="mulai()">
+Mulai Berbagi Lokasi
+</button>
+<button class="stop" onclick="berhenti()">
+Berhenti Berbagi
+</button>
 
-      if (!navigator.permissions) {
-        status.textContent =
-          "Browser tidak mendukung pemeriksaan izin.";
-        return;
-      }
+<p id="status">Status: Belum aktif</p>
+<pre id="hasil">Belum ada koordinat</pre>
+</main>
+
+<script>
+let watcher = null;
+let active = false;
+let lastSent = 0;
+
+function mulai() {
+  if (active) return;
+
+  if (!navigator.geolocation) {
+    document.getElementById("status").textContent =
+      "GPS tidak didukung browser";
+    return;
+  }
+
+  active = true;
+  document.getElementById("status").textContent =
+    "Meminta akses lokasi...";
+
+  watcher = navigator.geolocation.watchPosition(
+    async position => {
+      if (!active) return;
+
+      const data = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        timestamp: new Date().toISOString()
+      };
+
+      document.getElementById("hasil").textContent =
+        JSON.stringify(data, null, 2);
+
+      document.getElementById("status").textContent =
+        "Berbagi lokasi aktif";
+
+      const endpoint =
+        document.getElementById("endpoint").value.trim();
+      const token =
+        document.getElementById("token").value.trim();
+
+      if (!endpoint || !token) return;
+      if (!endpoint.startsWith("https://")) return;
+
+      const now = Date.now();
+      if (now - lastSent < 5000) return;
+      lastSent = now;
 
       try {
-        const permission =
-          await navigator.permissions.query({
-            name: "geolocation"
-          });
-
-        status.textContent =
-          "Status izin GPS: " + permission.state;
-      } catch (err) {
-        status.textContent =
-          "Status izin tidak tersedia di browser ini.";
-      }
-    }
-
-    document.getElementById("test")
-      .addEventListener("click", () => {
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            hasil.textContent =
-              "Latitude: " +
-              position.coords.latitude +
-              "\nLongitude: " +
-              position.coords.longitude +
-              "\nAkurasi: " +
-              position.coords.accuracy + " meter";
-          },
-          error => {
-            hasil.textContent =
-              "Akses lokasi gagal: " + error.message;
-          },
-          { enableHighAccuracy: true }
+        const response = await fetch(
+          endpoint.replace(/\/+$/, "") + "/location",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(data)
+          }
         );
-      });
 
-    checkPermission();
-  </script>
+        if (!response.ok)
+          throw new Error("HTTP " + response.status);
+      } catch (err) {
+        document.getElementById("status").textContent =
+          "Lokasi aktif, pengiriman gagal: " + err.message;
+      }
+    },
+    error => {
+      berhenti();
+      document.getElementById("status").textContent =
+        "GPS gagal: " + error.message;
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20000
+    }
+  );
+}
+
+function berhenti() {
+  active = false;
+  if (watcher !== null) {
+    navigator.geolocation.clearWatch(watcher);
+    watcher = null;
+  }
+  document.getElementById("status").textContent =
+    "Berbagi lokasi dihentikan";
+}
+
+window.addEventListener("pagehide", berhenti);
+</script>
 </body>
 </html>
