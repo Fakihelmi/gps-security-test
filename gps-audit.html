@@ -3,63 +3,85 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1">
 <title>GPS Location Finder</title>
+
 <style>
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   min-height: 100vh;
+  padding: 24px 14px;
   background: linear-gradient(135deg,#07111f,#17324a);
-  font-family: Arial,sans-serif;
   color: white;
-  padding: 22px 14px;
+  font-family: Arial,sans-serif;
 }
+
 .container {
+  position: relative;
   max-width: 480px;
   margin: 25px auto;
-  padding: 24px;
+  padding: 25px;
   background: #152438;
   border: 1px solid #30455d;
   border-radius: 20px;
-  position: relative;
+  box-shadow: 0 15px 40px #0004;
 }
-h2 { margin: 10px 50px 8px 0; }
-p { color: #b8c9da; line-height: 1.6; }
+
+h2 { margin: 10px 55px 8px 0; }
+
+p {
+  color: #b8c9da;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .card {
   background: #0d1c2d;
   padding: 15px;
   margin: 10px 0;
   border-radius: 11px;
 }
+
 .label {
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   margin-bottom: 8px;
 }
+
 .value {
+  font-size: 16px;
   font-weight: bold;
   overflow-wrap: anywhere;
 }
+
 .status {
-  padding: 14px;
   background: #23364c;
+  padding: 14px;
   border-radius: 10px;
-  margin: 20px 0;
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
 }
+
 button {
   border: none;
   cursor: pointer;
 }
+
 .start {
+  width: 100%;
   background: #22c55e;
   color: #052e16;
-  width: 100%;
-  padding: 15px;
-  border-radius: 10px;
-  font-weight: bold;
+  padding: 16px;
+  border-radius: 11px;
   font-size: 16px;
+  font-weight: bold;
+  margin-top: 12px;
 }
+
 .stop {
   position: absolute;
   top: 18px;
@@ -69,21 +91,81 @@ button {
   border-radius: 50%;
   background: #ef4444;
   color: white;
+  font-size: 18px;
 }
+
 .stop:disabled { opacity: .4; }
-input[type="checkbox"] {
-  width: 19px;
-  height: 19px;
-  accent-color: #22c55e;
+
+.settings {
+  border: 1px solid #40516a;
+  border-radius: 13px;
+  padding: 17px;
+  margin-top: 25px;
 }
+
+.settings h3 {
+  margin-top: 0;
+}
+
+.field {
+  margin: 15px 0;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  color: #b8c9da;
+  margin-bottom: 8px;
+}
+
+.field input {
+  width: 100%;
+  padding: 13px;
+  background: #0d1c2d;
+  border: 1px solid #40516a;
+  border-radius: 9px;
+  color: white;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 9px;
+  font-weight: bold;
+}
+
+.save {
+  background: #38bdf8;
+  color: #082f49;
+}
+
+.clear {
+  background: #475569;
+  color: white;
+}
+
 .consent {
   display: flex;
-  gap: 12px;
   align-items: flex-start;
+  gap: 10px;
   margin: 18px 0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
 }
+
+.consent input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: #22c55e;
+}
+
 a { color: #86efac; }
 </style>
 </head>
@@ -91,12 +173,17 @@ a { color: #86efac; }
 <body>
 <main class="container">
 
-<button class="stop" id="stop"
- onclick="stopGPS()" disabled
- aria-label="Hentikan sesi GPS">■</button>
+<button id="stopButton" class="stop"
+        onclick="stopGPS()"
+        disabled
+        aria-label="Hentikan GPS">■</button>
 
 <h2>GPS Location Finder</h2>
-<p>Periksa alamat dan koordinat perangkat secara real-time.</p>
+
+<p>
+Cek koordinat dan detail alamat perangkat
+secara real-time.
+</p>
 
 <div class="status" id="status">
 Status: Belum aktif
@@ -105,6 +192,11 @@ Status: Belum aktif
 <div class="card">
   <div class="label">NAMA JALAN</div>
   <div class="value" id="road">--</div>
+</div>
+
+<div class="card">
+  <div class="label">DESA / KELURAHAN</div>
+  <div class="value" id="village">--</div>
 </div>
 
 <div class="card">
@@ -123,181 +215,290 @@ Status: Belum aktif
 </div>
 
 <div class="card">
+  <div class="label">ALAMAT HASIL PETA</div>
+  <div class="value" id="fullAddress">--</div>
+</div>
+
+<div class="card">
   <div class="label">LATITUDE / LONGITUDE</div>
   <div class="value" id="coordinates">--</div>
 </div>
 
 <div class="card">
-  <div class="label">AKURASI</div>
+  <div class="label">AKURASI GPS</div>
   <div class="value" id="accuracy">--</div>
 </div>
 
 <div class="card">
-  <div class="label">PETA</div>
+  <div class="label">PEMBARUAN TERAKHIR</div>
+  <div class="value" id="updated">--</div>
+</div>
+
+<div class="card">
+  <div class="label">GOOGLE MAPS</div>
   <div class="value" id="map">--</div>
 </div>
 
-<label class="consent">
-  <input type="checkbox" id="consent">
-  <span>
-    Saya menyetujui pengiriman koordinat dan
-    informasi lokasi perangkat ke server pengujian
-    Kali Linux selama sesi ini aktif.
-  </span>
-</label>
+<section class="settings">
 
-<div class="status" id="sendStatus">
-Pengiriman: Belum aktif
-</div>
+  <h3>Koneksi Server Kali Linux</h3>
+
+  <div class="field">
+    <label for="serverUrl">URL Cloudflare Tunnel</label>
+    <input id="serverUrl"
+      type="url"
+      placeholder="https://nama.trycloudflare.com"
+      autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="sessionToken">Session Token</label>
+    <input id="sessionToken"
+      type="password"
+      placeholder="aQpnMD7o6Y2lf9WBzkkgM7N1z_cjgYRV"
+      autocomplete="off">
+  </div>
+
+  <div class="actions">
+    <button class="save"
+      onclick="saveConfig()">
+      Simpan Konfigurasi
+    </button>
+
+    <button class="clear"
+      onclick="clearConfig()">
+      Hapus Konfigurasi
+    </button>
+  </div>
+
+  <p id="configStatus">
+    Konfigurasi belum disimpan.
+  </p>
+
+  <label class="consent">
+    <input type="checkbox" id="share">
+    <span>
+      Saya menyetujui pengiriman koordinat
+      perangkat ke server Kali Linux selama
+      sesi GPS aktif.
+    </span>
+  </label>
+
+  <div class="status" id="sendStatus">
+    Pengiriman: Nonaktif
+  </div>
+
+</section>
 
 <button class="start" onclick="startGPS()">
 Cek Koordinat
 </button>
 
-<p style="font-size:12px">
-Lokasi hanya dikirim ke server jika persetujuan
-diaktifkan. Tombol merah menghentikan sesi.
-Pencarian alamat menggunakan OpenStreetMap Nominatim.
+<p>
+Koordinat digunakan untuk mencari alamat melalui
+OpenStreetMap Nominatim. Pengiriman ke Kali Linux
+hanya aktif apabila disetujui.
 </p>
 
 </main>
 
 <script>
-// ======================================
-// KONFIGURASI SERVER KALI LINUX
-// ======================================
+const DEFAULT_SERVER =
+  "https://dept-qui-commercial-girls.trycloudflare.com";
 
-const CONFIG = {
-  serverUrl:
-    "https://dept-qui-commercial-girls.trycloudflare.com",
-
-  // Masukkan token sendiri di sini untuk lab privat.
-  // Jangan unggah token aktif ke GitHub.
-  sessionToken: "aQpnMD7o6Y2lf9WBzkkgM7N1z_cjgYRV",
-
-  minSendInterval: 5000
-};
-
-// ======================================
-// STATUS APLIKASI
-// ======================================
+const SEND_INTERVAL = 5000;
+const LOOKUP_INTERVAL = 15000;
 
 let watchId = null;
 let active = false;
+let currentSession = null;
 let lastSent = 0;
 let lastLookup = 0;
-let lastPosition = null;
-let session = null;
+let lastPoint = null;
 
-// ======================================
-// FUNGSI TAMPILAN
-// ======================================
-
-function statusText(text) {
-  document.getElementById("status").textContent =
-    "Status: " + text;
-}
-
-function sendStatus(text) {
-  document.getElementById("sendStatus").textContent =
-    "Pengiriman: " + text;
+function element(id) {
+  return document.getElementById(id);
 }
 
 function fill(id, value) {
-  document.getElementById(id).textContent =
-    value === undefined || value === null || value === ""
+  element(id).textContent =
+    value === undefined ||
+    value === null ||
+    value === ""
       ? "Tidak tersedia"
       : String(value);
 }
 
-// ======================================
-// MULAI PENGUJIAN
-// ======================================
+function setStatus(text) {
+  fill("status", "Status: " + text);
+}
+
+function setSendStatus(text) {
+  fill("sendStatus", "Pengiriman: " + text);
+}
+
+function loadConfig() {
+  element("serverUrl").value =
+    localStorage.getItem("gps_server_url")
+    || DEFAULT_SERVER;
+
+  element("sessionToken").value =
+    sessionStorage.getItem("gps_session_token")
+    || "";
+}
+
+function saveConfig() {
+  if (active) {
+    fill("configStatus",
+      "Hentikan sesi sebelum mengubah konfigurasi.");
+    return;
+  }
+
+  const url = element("serverUrl").value.trim();
+  const token = element("sessionToken").value.trim();
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.protocol !== "https:") {
+      throw new Error("Gunakan HTTPS");
+    }
+
+    localStorage.setItem("gps_server_url", url);
+    sessionStorage.setItem("gps_session_token", token);
+
+    fill("configStatus",
+      "URL disimpan. Token disimpan untuk sesi browser ini.");
+  } catch {
+    fill("configStatus", "URL server tidak valid.");
+  }
+}
+
+function clearConfig() {
+  if (active) {
+    fill("configStatus",
+      "Hentikan sesi sebelum menghapus konfigurasi.");
+    return;
+  }
+
+  localStorage.removeItem("gps_server_url");
+  sessionStorage.removeItem("gps_session_token");
+
+  element("serverUrl").value = "";
+  element("sessionToken").value = "";
+  element("share").checked = false;
+
+  fill("configStatus", "Konfigurasi dihapus.");
+}
+
+function pick(...values) {
+  return values.find(
+    x => typeof x === "string" && x.trim()
+  ) || "Tidak tersedia";
+}
 
 function startGPS() {
   if (active) return;
 
   if (!navigator.geolocation) {
-    statusText("Geolocation tidak didukung");
+    setStatus("Geolocation tidak didukung");
     return;
   }
 
-  const agreed =
-    document.getElementById("consent").checked;
+  const sharing = element("share").checked;
+  const url = element("serverUrl").value
+    .trim().replace(/\/+$/, "");
+  const token = element("sessionToken").value.trim();
 
-  if (agreed && !CONFIG.sessionToken.trim()) {
-    statusText("Token sesi belum dikonfigurasi");
-    return;
+  if (sharing) {
+    try {
+      if (new URL(url).protocol !== "https:" || !token) {
+        throw new Error("Konfigurasi tidak lengkap");
+      }
+    } catch {
+      setStatus("URL HTTPS atau token belum valid");
+      return;
+    }
   }
 
-  session = {
-    share: agreed,
+  currentSession = {
+    sharing,
+    url,
+    token,
     controller: new AbortController()
   };
 
   active = true;
   lastSent = 0;
+  lastLookup = 0;
+  lastPoint = null;
 
-  document.getElementById("stop").disabled = false;
-  document.getElementById("consent").disabled = true;
+  element("stopButton").disabled = false;
+  element("share").disabled = true;
+  element("serverUrl").disabled = true;
+  element("sessionToken").disabled = true;
 
-  statusText("Meminta lokasi...");
-  sendStatus(agreed ? "Menunggu koordinat" : "Nonaktif");
+  setStatus("Meminta akses lokasi...");
+  setSendStatus(sharing ? "Menunggu koordinat" : "Nonaktif");
 
   watchId = navigator.geolocation.watchPosition(
     position => {
       if (!active) return;
 
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const acc = position.coords.accuracy;
 
-      fill(
-        "coordinates",
-        latitude.toFixed(7) + ", " + longitude.toFixed(7)
-      );
+      fill("coordinates",
+        lat.toFixed(7) + ", " + lon.toFixed(7));
 
-      fill("accuracy", accuracy.toFixed(1) + " meter");
+      fill("accuracy", acc.toFixed(1) + " meter");
 
-      const map = document.getElementById("map");
+      fill("updated",
+        new Date(position.timestamp)
+          .toLocaleString("id-ID"));
+
+      const map = element("map");
       map.replaceChildren();
 
       const link = document.createElement("a");
       link.href =
         "https://www.google.com/maps?q=" +
-        latitude + "," + longitude;
+        lat + "," + lon;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "Buka di Google Maps";
+      link.textContent = "Buka titik lokasi";
       map.appendChild(link);
 
-      statusText("GPS aktif");
+      setStatus("GPS aktif");
 
-      lastPosition = {
-        latitude,
-        longitude,
-        accuracy,
-        timestamp: new Date().toISOString()
-      };
-
-      if (session.share) {
-        sendLocation(lastPosition, session);
+      if (currentSession.sharing) {
+        sendToKali(
+          { latitude: lat, longitude: lon, accuracy: acc },
+          currentSession
+        );
       }
 
       const now = Date.now();
 
-      // Batasi reverse geocoding untuk uji ringan.
-      if (now - lastLookup >= 15000) {
+      const moved =
+        !lastPoint ||
+        Math.abs(lat - lastPoint.lat) > 0.0003 ||
+        Math.abs(lon - lastPoint.lon) > 0.0003;
+
+      if (
+        now - lastLookup >= LOOKUP_INTERVAL &&
+        moved
+      ) {
         lastLookup = now;
-        getAddress(latitude, longitude, session);
+        lastPoint = { lat, lon };
+        reverseGeocode(lat, lon, currentSession);
       }
     },
-
     error => {
       stopGPS();
-      statusText("Gagal: " + error.message);
+      setStatus("GPS gagal: " + error.message);
     },
-
     {
       enableHighAccuracy: true,
       maximumAge: 0,
@@ -306,21 +507,17 @@ function startGPS() {
   );
 }
 
-// ======================================
-// REVERSE GEOCODING
-// ======================================
-
-async function getAddress(lat, lon, currentSession) {
+async function reverseGeocode(lat, lon, session) {
   try {
     const url =
       "https://nominatim.openstreetmap.org/reverse" +
-      "?format=jsonv2&addressdetails=1" +
+      "?format=jsonv2&addressdetails=1&zoom=18" +
+      "&accept-language=id" +
       "&lat=" + encodeURIComponent(lat) +
-      "&lon=" + encodeURIComponent(lon) +
-      "&accept-language=id";
+      "&lon=" + encodeURIComponent(lon);
 
     const response = await fetch(url, {
-      signal: currentSession.controller.signal
+      signal: session.controller.signal
     });
 
     if (!response.ok) {
@@ -329,95 +526,70 @@ async function getAddress(lat, lon, currentSession) {
 
     const data = await response.json();
 
-    if (!active || session !== currentSession) return;
+    if (!active || currentSession !== session) return;
 
-    const address = data.address || {};
+    const a = data.address || {};
 
-    fill(
-      "road",
-      address.road ||
-      address.pedestrian ||
-      address.residential
-    );
+    fill("road", pick(
+      a.road, a.pedestrian, a.residential, a.path
+    ));
 
-    fill(
-      "district",
-      address.city_district ||
-      address.district ||
-      address.suburb ||
-      address.municipality
-    );
+    fill("village", pick(
+      a.village, a.hamlet, a.neighbourhood, a.quarter
+    ));
 
-    fill(
-      "city",
-      address.city ||
-      address.county ||
-      address.town ||
-      address.regency
-    );
+    fill("district", pick(
+      a.city_district, a.district, a.subdistrict,
+      a.municipality
+    ));
 
-    fill(
-      "province",
-      address.state || address.region
-    );
+    fill("city", pick(
+      a.city, a.regency, a.county, a.town
+    ));
+
+    fill("province", pick(a.state, a.region));
+    fill("fullAddress", data.display_name);
 
   } catch (error) {
-    if (error.name !== "AbortError" && active) {
-      statusText("GPS aktif - alamat belum tersedia");
+    if (active && error.name !== "AbortError") {
+      setStatus("GPS aktif - alamat belum tersedia");
     }
   }
 }
 
-// ======================================
-// KIRIM KE SERVER KALI LINUX
-// ======================================
-
-async function sendLocation(data, currentSession) {
-  if (!active || !currentSession.share) return;
-
+async function sendToKali(data, session) {
   const now = Date.now();
 
-  if (now - lastSent < CONFIG.minSendInterval) {
-    return;
-  }
-
+  if (now - lastSent < SEND_INTERVAL) return;
   lastSent = now;
 
   try {
     const response = await fetch(
-      CONFIG.serverUrl.replace(/\/+$/, "") + "/location",
+      session.url + "/location",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization":
-            "Bearer " + CONFIG.sessionToken
+          "Authorization": "Bearer " + session.token
         },
         body: JSON.stringify(data),
-        signal: currentSession.controller.signal
+        signal: session.controller.signal
       }
     );
 
-    if (!active || session !== currentSession) return;
+    if (!active || currentSession !== session) return;
 
     if (!response.ok) {
       throw new Error("HTTP " + response.status);
     }
 
-    sendStatus("Berhasil dikirim ke Kali Linux");
+    setSendStatus("Berhasil dikirim ke Kali Linux");
 
   } catch (error) {
-    if (!active || session !== currentSession) return;
-
-    sendStatus(
-      "Gagal: " + error.message
-    );
+    if (!active || currentSession !== session) return;
+    setSendStatus("Gagal: " + error.message);
   }
 }
-
-// ======================================
-// HENTIKAN SESI
-// ======================================
 
 function stopGPS() {
   active = false;
@@ -427,19 +599,22 @@ function stopGPS() {
     watchId = null;
   }
 
-  if (session) {
-    session.controller.abort();
-    session = null;
+  if (currentSession) {
+    currentSession.controller.abort();
+    currentSession = null;
   }
 
-  document.getElementById("stop").disabled = true;
-  document.getElementById("consent").disabled = false;
+  element("stopButton").disabled = true;
+  element("share").disabled = false;
+  element("serverUrl").disabled = false;
+  element("sessionToken").disabled = false;
 
-  statusText("Sesi dihentikan");
-  sendStatus("Nonaktif");
+  setStatus("Sesi dihentikan");
+  setSendStatus("Nonaktif");
 }
 
 window.addEventListener("pagehide", stopGPS);
+loadConfig();
 </script>
 </body>
 </html>
