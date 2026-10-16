@@ -3,138 +3,236 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GPS Security Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPS Coordinate Checker</title>
+
 <style>
+* { box-sizing: border-box; }
+
 body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(145deg, #07111f, #142b40);
+  color: #fff;
   font-family: Arial, sans-serif;
-  background: #101827;
-  color: white;
-  padding: 24px;
+  padding: 24px 16px;
 }
-main {
-  max-width: 480px;
-  margin: 30px auto;
-  background: #1e293b;
-  border-radius: 16px;
-  padding: 25px;
+
+.container {
+  max-width: 440px;
+  margin: 40px auto;
+  background: #152438;
+  padding: 26px;
+  border: 1px solid #30455d;
+  border-radius: 20px;
+  position: relative;
+  box-shadow: 0 16px 45px #0005;
 }
-button {
-  padding: 13px;
-  margin: 6px 0;
+
+.stop {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
   border: 0;
-  border-radius: 8px;
-  width: 100%;
-  font-size: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
 }
-.start { background: #22c55e; }
-.stop { background: #f87171; }
-input {
-  padding: 12px;
-  width: 100%;
-  box-sizing: border-box;
+
+.stop:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+h2 {
+  margin: 10px 48px 8px 0;
+}
+
+.desc {
+  color: #a9b9ce;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.status {
+  background: #23364c;
+  padding: 14px;
+  border-radius: 10px;
+  margin: 22px 0;
+  font-size: 14px;
+}
+
+.coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.coord {
+  background: #0e1b2b;
+  border-radius: 12px;
+  padding: 15px;
+  min-width: 0;
+}
+
+.label {
+  color: #94a3b8;
+  font-size: 12px;
   margin-bottom: 10px;
 }
-pre {
-  white-space: pre-wrap;
+
+.value {
+  font-size: 16px;
+  font-weight: bold;
   overflow-wrap: anywhere;
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+input {
+  width: 100%;
+  background: #0e1b2b;
+  border: 1px solid #40516a;
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: 9px;
+  color: white;
+}
+
+.check {
+  margin-top: 20px;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #22c55e;
+  color: #052e16;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.info {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 18px;
 }
 </style>
 </head>
+
 <body>
-<main>
-<h2>GPS Security Test</h2>
-<p>Uji lokasi perangkat secara real-time.</p>
-<p>Lokasi hanya dibaca selama sesi berbagi aktif.</p>
+<div class="container">
 
-<input id="endpoint"
- placeholder="URL HTTPS server Kali Linux">
-<input id="token" type="password"
- placeholder="Kode sesi pribadi">
+<button class="stop"
+        id="stopButton"
+        onclick="stopGPS()"
+        title="Hentikan sesi lokasi"
+        aria-label="Hentikan sesi lokasi"
+        disabled>&#9632;</button>
 
-<button class="start" onclick="mulai()">
-Mulai Berbagi Lokasi
+<h2>GPS Coordinate Checker</h2>
+
+<p class="desc">
+Periksa koordinat perangkat secara real-time
+menggunakan layanan lokasi browser.
+</p>
+
+<div class="status" id="status">
+Status: Belum aktif
+</div>
+
+<div class="coordinates">
+
+  <div class="coord">
+    <div class="label">LATITUDE</div>
+    <div class="value" id="lat">--</div>
+  </div>
+
+  <div class="coord">
+    <div class="label">LONGITUDE</div>
+    <div class="value" id="lon">--</div>
+  </div>
+
+  <div class="coord full">
+    <div class="label">AKURASI GPS</div>
+    <div class="value" id="accuracy">--</div>
+  </div>
+
+  <div class="coord full">
+    <div class="label">PEMBARUAN TERAKHIR</div>
+    <div class="value" id="time">--</div>
+  </div>
+
+</div>
+
+<button class="check" onclick="startGPS()">
+Cek Koordinat
 </button>
-<button class="stop" onclick="berhenti()">
-Berhenti Berbagi
-</button>
 
-<p id="status">Status: Belum aktif</p>
-<pre id="hasil">Belum ada koordinat</pre>
-</main>
+<p class="info">
+Setelah tombol ditekan dan izin lokasi diberikan,
+koordinat diperbarui selama sesi aktif.
+Tekan tombol merah di pojok untuk menghentikan sesi.
+</p>
+
+</div>
 
 <script>
-let watcher = null;
+let watchId = null;
 let active = false;
-let lastSent = 0;
 
-function mulai() {
+function setStatus(message) {
+  document.getElementById("status").textContent =
+    "Status: " + message;
+}
+
+function startGPS() {
   if (active) return;
 
   if (!navigator.geolocation) {
-    document.getElementById("status").textContent =
-      "GPS tidak didukung browser";
+    setStatus("Browser tidak mendukung GPS");
     return;
   }
 
   active = true;
-  document.getElementById("status").textContent =
-    "Meminta akses lokasi...";
+  document.getElementById("stopButton").disabled = false;
+  setStatus("Memeriksa izin lokasi...");
 
-  watcher = navigator.geolocation.watchPosition(
-    async position => {
+  watchId = navigator.geolocation.watchPosition(
+    function(position) {
       if (!active) return;
 
-      const data = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: new Date().toISOString()
-      };
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
 
-      document.getElementById("hasil").textContent =
-        JSON.stringify(data, null, 2);
+      document.getElementById("lat").textContent =
+        lat.toFixed(7);
 
-      document.getElementById("status").textContent =
-        "Berbagi lokasi aktif";
+      document.getElementById("lon").textContent =
+        lon.toFixed(7);
 
-      const endpoint =
-        document.getElementById("endpoint").value.trim();
-      const token =
-        document.getElementById("token").value.trim();
+      document.getElementById("accuracy").textContent =
+        accuracy.toFixed(1) + " meter";
 
-      if (!endpoint || !token) return;
-      if (!endpoint.startsWith("https://")) return;
+      document.getElementById("time").textContent =
+        new Date(position.timestamp).toLocaleTimeString();
 
-      const now = Date.now();
-      if (now - lastSent < 5000) return;
-      lastSent = now;
-
-      try {
-        const response = await fetch(
-          endpoint.replace(/\/+$/, "") + "/location",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify(data)
-          }
-        );
-
-        if (!response.ok)
-          throw new Error("HTTP " + response.status);
-      } catch (err) {
-        document.getElementById("status").textContent =
-          "Lokasi aktif, pengiriman gagal: " + err.message;
-      }
+      setStatus("GPS aktif - memperbarui lokasi");
     },
-    error => {
-      berhenti();
-      document.getElementById("status").textContent =
-        "GPS gagal: " + error.message;
+
+    function(error) {
+      stopGPS();
+      setStatus("Gagal: " + error.message);
     },
+
     {
       enableHighAccuracy: true,
       maximumAge: 0,
@@ -143,17 +241,20 @@ function mulai() {
   );
 }
 
-function berhenti() {
+function stopGPS() {
   active = false;
-  if (watcher !== null) {
-    navigator.geolocation.clearWatch(watcher);
-    watcher = null;
+
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
   }
-  document.getElementById("status").textContent =
-    "Berbagi lokasi dihentikan";
+
+  document.getElementById("stopButton").disabled = true;
+  setStatus("Sesi dihentikan");
 }
 
-window.addEventListener("pagehide", berhenti);
+window.addEventListener("pagehide", stopGPS);
 </script>
+
 </body>
 </html>
